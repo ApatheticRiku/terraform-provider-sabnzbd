@@ -15,3 +15,5 @@ import (
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
 	"sabnzbd": providerserver.NewProtocol6WithError(New("test")()),
 }
+
+var _ = testAccProtoV6ProviderFactories

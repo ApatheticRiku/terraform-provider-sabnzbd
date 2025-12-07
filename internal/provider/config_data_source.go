@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/apatheticriku/terraform-provider-sabnzbd/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/apatheticriku/terraform-provider-sabnzbd/internal/client"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -28,10 +28,10 @@ type ConfigDataSource struct {
 
 // ConfigDataSourceModel describes the data source data model.
 type ConfigDataSourceModel struct {
-	ID         types.String   `tfsdk:"id"`
-	Version    types.String   `tfsdk:"version"`
-	Categories []types.String `tfsdk:"categories"`
-	Scripts    []types.String `tfsdk:"scripts"`
+	ID         types.String `tfsdk:"id"`
+	Version    types.String `tfsdk:"version"`
+	Categories types.List   `tfsdk:"categories"`
+	Scripts    types.List   `tfsdk:"scripts"`
 }
 
 func (d *ConfigDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -105,10 +105,16 @@ func (d *ConfigDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read categories, got error: %s", err))
 		return
 	}
-	data.Categories = make([]types.String, len(categories))
+	categoryValues := make([]types.String, len(categories))
 	for i, cat := range categories {
-		data.Categories[i] = types.StringValue(cat)
+		categoryValues[i] = types.StringValue(cat)
 	}
+	categoriesList, diags := types.ListValueFrom(ctx, types.StringType, categoryValues)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.Categories = categoriesList
 
 	// Get scripts.
 	scripts, err := d.client.GetScripts(ctx)
@@ -116,10 +122,16 @@ func (d *ConfigDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read scripts, got error: %s", err))
 		return
 	}
-	data.Scripts = make([]types.String, len(scripts))
+	scriptValues := make([]types.String, len(scripts))
 	for i, script := range scripts {
-		data.Scripts[i] = types.StringValue(script)
+		scriptValues[i] = types.StringValue(script)
 	}
+	scriptsList, diags := types.ListValueFrom(ctx, types.StringType, scriptValues)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.Scripts = scriptsList
 
 	data.ID = types.StringValue("sabnzbd-config")
 
