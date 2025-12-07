@@ -1,64 +1,126 @@
-# Terraform Provider Scaffolding (Terraform Plugin Framework)
+# Terraform Provider for SABnzbd
 
-_This template repository is built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework). The template repository built on the [Terraform Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk) can be found at [terraform-provider-scaffolding](https://github.com/hashicorp/terraform-provider-scaffolding). See [Which SDK Should I Use?](https://developer.hashicorp.com/terraform/plugin/framework-benefits) in the Terraform documentation for additional information._
+This Terraform provider allows you to manage [SABnzbd](https://sabnzbd.org/) configuration as infrastructure. SABnzbd is a free and open-source Usenet binary newsreader.
 
-This repository is a *template* for a [Terraform](https://www.terraform.io) provider. It is intended as a starting point for creating Terraform providers, containing:
+## Features
 
-- A resource and a data source (`internal/provider/`),
-- Examples (`examples/`) and generated documentation (`docs/`),
-- Miscellaneous meta files.
-
-These files contain boilerplate code that you will need to edit to create your own Terraform provider. Tutorials for creating Terraform providers can be found on the [HashiCorp Developer](https://developer.hashicorp.com/terraform/tutorials/providers-plugin-framework) platform. _Terraform Plugin Framework specific guides are titled accordingly._
-
-Please see the [GitHub template repository documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) for how to create a new repository from this template on GitHub.
-
-Once you've written your provider, you'll want to [publish it on the Terraform Registry](https://developer.hashicorp.com/terraform/registry/providers/publishing) so that others can use it.
+- **News Servers** - Configure Usenet news servers with full SSL/TLS support
+- **Categories** - Manage download categories with custom directories, scripts, and post-processing options
+- **Configuration Data** - Read SABnzbd version, available categories, and scripts
 
 ## Requirements
 
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.24
+- [Go](https://golang.org/doc/install) >= 1.24 (for building)
+- SABnzbd instance with API access enabled
 
-## Building The Provider
+## Installation
 
-1. Clone the repository
-1. Enter the repository directory
-1. Build the provider using the Go `install` command:
+### From Source
 
 ```shell
+git clone https://github.com/apatheticriku/terraform-provider-sabnzbd.git
+cd terraform-provider-sabnzbd
 go install
 ```
 
-## Adding Dependencies
+## Usage
 
-This provider uses [Go modules](https://github.com/golang/go/wiki/Modules).
-Please see the Go documentation for the most up to date information about using Go modules.
+### Provider Configuration
 
-To add a new dependency `github.com/author/dependency` to your Terraform provider:
-
-```shell
-go get github.com/author/dependency
-go mod tidy
+```hcl
+provider "sabnzbd" {
+  url     = "http://localhost:8080"
+  api_key = var.sabnzbd_api_key
+}
 ```
 
-Then commit the changes to `go.mod` and `go.sum`.
-
-## Using the provider
-
-Fill this in for each provider
-
-## Developing the Provider
-
-If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (see [Requirements](#requirements) above).
-
-To compile the provider, run `go install`. This will build the provider and put the provider binary in the `$GOPATH/bin` directory.
-
-To generate or update documentation, run `make generate`.
-
-In order to run the full suite of Acceptance tests, run `make testacc`.
-
-*Note:* Acceptance tests create real resources, and often cost money to run.
+Or use environment variables:
 
 ```shell
-make testacc
+export SABNZBD_URL="http://localhost:8080"
+export SABNZBD_API_KEY="your-api-key"
 ```
+
+### Example: Configure a News Server
+
+```hcl
+resource "sabnzbd_server" "primary" {
+  name        = "news.example.com"
+  host        = "news.example.com"
+  port        = 563
+  username    = "myuser"
+  password    = var.news_server_password
+  connections = 20
+  ssl         = true
+  ssl_verify  = 2
+  enable      = true
+  priority    = 0
+}
+```
+
+### Example: Configure Categories
+
+```hcl
+resource "sabnzbd_category" "movies" {
+  name     = "movies"
+  dir      = "Movies"
+  priority = 0
+  pp       = "3"  # +Repair/Unpack/Delete
+}
+
+resource "sabnzbd_category" "tv" {
+  name     = "tv"
+  dir      = "TV Shows"
+  priority = 1
+  pp       = "3"
+}
+```
+
+### Example: Read Configuration
+
+```hcl
+data "sabnzbd_config" "current" {}
+
+output "version" {
+  value = data.sabnzbd_config.current.version
+}
+```
+
+## Resources
+
+| Resource | Description |
+|----------|-------------|
+| `sabnzbd_server` | Manages news server configuration |
+| `sabnzbd_category` | Manages download categories |
+
+## Data Sources
+
+| Data Source | Description |
+|-------------|-------------|
+| `sabnzbd_config` | Reads SABnzbd configuration (version, categories, scripts) |
+
+## Development
+
+### Building
+
+```shell
+make build
+```
+
+### Testing
+
+```shell
+make test        # Unit tests
+make testacc     # Acceptance tests (requires running SABnzbd)
+```
+
+### Generating Documentation
+
+```shell
+make generate
+```
+
+## License
+
+MPL-2.0
