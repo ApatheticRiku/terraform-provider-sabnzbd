@@ -5,53 +5,61 @@ package provider
 
 import (
 	"context"
-	"net/http"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
-	"github.com/hashicorp/terraform-plugin-framework/function"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/apatheticriku/terraform-provider-sabnzbd/internal/client"
 )
 
-// Ensure ScaffoldingProvider satisfies various provider interfaces.
-var _ provider.Provider = &ScaffoldingProvider{}
-var _ provider.ProviderWithFunctions = &ScaffoldingProvider{}
-var _ provider.ProviderWithEphemeralResources = &ScaffoldingProvider{}
+// Ensure SabnzbdProvider satisfies various provider interfaces.
+var _ provider.Provider = &SabnzbdProvider{}
 
-// ScaffoldingProvider defines the provider implementation.
-type ScaffoldingProvider struct {
+// SabnzbdProvider defines the provider implementation.
+type SabnzbdProvider struct {
 	// version is set to the provider version on release, "dev" when the
 	// provider is built and ran locally, and "test" when running acceptance
 	// testing.
 	version string
 }
 
-// ScaffoldingProviderModel describes the provider data model.
-type ScaffoldingProviderModel struct {
-	Endpoint types.String `tfsdk:"endpoint"`
+// SabnzbdProviderModel describes the provider data model.
+type SabnzbdProviderModel struct {
+	URL    types.String `tfsdk:"url"`
+	APIKey types.String `tfsdk:"api_key"`
 }
 
-func (p *ScaffoldingProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "scaffolding"
+func (p *SabnzbdProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "sabnzbd"
 	resp.Version = p.version
 }
 
-func (p *ScaffoldingProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *SabnzbdProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "The SABnzbd provider allows you to manage SABnzbd configuration as infrastructure. " +
+			"It supports managing servers, categories, and other settings through the SABnzbd API.",
 		Attributes: map[string]schema.Attribute{
-			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "Example provider attribute",
-				Optional:            true,
+			"url": schema.StringAttribute{
+				MarkdownDescription: "The URL of the SABnzbd instance (e.g., `http://localhost:8080`). " +
+					"Can also be set via the `SABNZBD_URL` environment variable.",
+				Optional: true,
+			},
+			"api_key": schema.StringAttribute{
+				MarkdownDescription: "The API key for authenticating with SABnzbd. " +
+					"Can also be set via the `SABNZBD_API_KEY` environment variable.",
+				Optional:  true,
+				Sensitive: true,
 			},
 		},
 	}
 }
 
-func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data ScaffoldingProviderModel
+func (p *SabnzbdProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	var data SabnzbdProviderModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
@@ -59,42 +67,64 @@ func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.Config
 		return
 	}
 
-	// Configuration values are now available.
-	// if data.Endpoint.IsNull() { /* ... */ }
+	// Default to environment variables if not set in configuration.
+	url := os.Getenv("SABNZBD_URL")
+	apiKey := os.Getenv("SABNZBD_API_KEY")
 
-	// Example client configuration for data sources and resources
-	client := http.DefaultClient
-	resp.DataSourceData = client
-	resp.ResourceData = client
+	if !data.URL.IsNull() {
+		url = data.URL.ValueString()
+	}
+
+	if !data.APIKey.IsNull() {
+		apiKey = data.APIKey.ValueString()
+	}
+
+	// Validate required configuration.
+	if url == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("url"),
+			"Missing SABnzbd URL",
+			"The provider cannot create the SABnzbd API client as there is a missing or empty value for the SABnzbd URL. "+
+				"Set the url value in the configuration or use the SABNZBD_URL environment variable.",
+		)
+	}
+
+	if apiKey == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("api_key"),
+			"Missing SABnzbd API Key",
+			"The provider cannot create the SABnzbd API client as there is a missing or empty value for the SABnzbd API key. "+
+				"Set the api_key value in the configuration or use the SABNZBD_API_KEY environment variable.",
+		)
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Create the SABnzbd client.
+	sabnzbdClient := client.NewClient(url, apiKey)
+
+	resp.DataSourceData = sabnzbdClient
+	resp.ResourceData = sabnzbdClient
 }
 
-func (p *ScaffoldingProvider) Resources(ctx context.Context) []func() resource.Resource {
+func (p *SabnzbdProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewExampleResource,
+		NewServerResource,
+		NewCategoryResource,
 	}
 }
 
-func (p *ScaffoldingProvider) EphemeralResources(ctx context.Context) []func() ephemeral.EphemeralResource {
-	return []func() ephemeral.EphemeralResource{
-		NewExampleEphemeralResource,
-	}
-}
-
-func (p *ScaffoldingProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+func (p *SabnzbdProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewExampleDataSource,
-	}
-}
-
-func (p *ScaffoldingProvider) Functions(ctx context.Context) []func() function.Function {
-	return []func() function.Function{
-		NewExampleFunction,
+		NewConfigDataSource,
 	}
 }
 
 func New(version string) func() provider.Provider {
 	return func() provider.Provider {
-		return &ScaffoldingProvider{
+		return &SabnzbdProvider{
 			version: version,
 		}
 	}
