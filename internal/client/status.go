@@ -23,12 +23,12 @@ type Status struct {
 
 // ServerStatus represents the status of a news server.
 type ServerStatus struct {
-	ServerName      string `json:"servername"`
-	ServerActive    bool   `json:"serveractive"`
-	ServerError     string `json:"servererror"`
-	ServerPriority  int    `json:"serverpriority"`
-	ServerActiveConn int   `json:"serveractiveconn"`
-	ServerTotalConn  int   `json:"servertotalconn"`
+	ServerName       string `json:"servername"`
+	ServerActive     bool   `json:"serveractive"`
+	ServerError      string `json:"servererror"`
+	ServerPriority   int    `json:"serverpriority"`
+	ServerActiveConn int    `json:"serveractiveconn"`
+	ServerTotalConn  int    `json:"servertotalconn"`
 }
 
 // FullStatus represents the full status response.

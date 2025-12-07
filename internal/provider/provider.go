@@ -7,13 +7,13 @@ import (
 	"context"
 	"os"
 
+	"github.com/apatheticriku/terraform-provider-sabnzbd/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/apatheticriku/terraform-provider-sabnzbd/internal/client"
 )
 
 // Ensure SabnzbdProvider satisfies various provider interfaces.
