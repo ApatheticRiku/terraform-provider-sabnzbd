@@ -76,9 +76,9 @@ variable "backup_server_password" {
 - `retention` (Number) The retention period in days (0 for unlimited).
 - `ssl` (Boolean) Whether to use SSL/TLS for the connection.
 - `ssl_ciphers` (String) Custom SSL ciphers to use (leave empty for default).
-- `ssl_verify` (Number) SSL certificate verification level: 0=None, 1=Verify CA, 2=Verify CA and hostname.
+- `ssl_verify` (Number) SSL certificate verification level: 0=Disabled, 1=Minimal, 2=Medium, 3=Strict.
 - `timeout` (Number) Connection timeout in seconds.
-- `username` (String) The username for authentication.
+- `username` (String, Sensitive) The username for authentication.
 
 ## Import
 

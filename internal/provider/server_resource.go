@@ -82,6 +82,7 @@ func (r *ServerResource) Schema(ctx context.Context, req resource.SchemaRequest,
 			"username": schema.StringAttribute{
 				MarkdownDescription: "The username for authentication.",
 				Optional:            true,
+				Sensitive:           true,
 				Computed:            true,
 				Default:             stringdefault.StaticString(""),
 			},
@@ -105,10 +106,10 @@ func (r *ServerResource) Schema(ctx context.Context, req resource.SchemaRequest,
 				Default:             booldefault.StaticBool(true),
 			},
 			"ssl_verify": schema.Int64Attribute{
-				MarkdownDescription: "SSL certificate verification level: 0=None, 1=Verify CA, 2=Verify CA and hostname.",
+				MarkdownDescription: "SSL certificate verification level: 0=Disabled, 1=Minimal, 2=Medium, 3=Strict.",
 				Optional:            true,
 				Computed:            true,
-				Default:             int64default.StaticInt64(2),
+				Default:             int64default.StaticInt64(3),
 			},
 			"ssl_ciphers": schema.StringAttribute{
 				MarkdownDescription: "Custom SSL ciphers to use (leave empty for default).",
@@ -232,8 +233,7 @@ func (r *ServerResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	data.Host = types.StringValue(server.Host)
 	data.Port = types.Int64Value(int64(server.Port))
-	data.Username = types.StringValue(server.Username)
-	// Note: Password is not returned by the API for security reasons.
+	// Note: Username and Password are not returned by the API for security reasons.
 	data.Connections = types.Int64Value(int64(server.Connections))
 	data.SSL = types.BoolValue(server.SSL == 1)
 	data.SSLVerify = types.Int64Value(int64(server.SSLVerify))
