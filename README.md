@@ -6,6 +6,7 @@ This Terraform provider allows you to manage [SABnzbd](https://sabnzbd.org/) con
 
 - **News Servers** - Configure Usenet news servers with full SSL/TLS support
 - **Categories** - Manage download categories with custom directories, scripts, and post-processing options
+- **Folders** - Configure download paths, watched folders, scripts directory, and disk space management
 - **Configuration Data** - Read SABnzbd version, available categories, and scripts
 
 ## Requirements
@@ -77,6 +78,22 @@ resource "sabnzbd_category" "tv" {
 }
 ```
 
+### Example: Configure Folders
+
+```hcl
+resource "sabnzbd_folders" "config" {
+  download_dir           = "/data/incomplete"
+  download_free          = "10G"
+  complete_dir           = "/data/complete"
+  complete_free          = "20G"
+  auto_resume            = true
+  permissions            = "755"
+  watched_dir            = "/data/nzb-watch"
+  watched_dir_scan_speed = 5
+  scripts_dir            = "/config/scripts"
+}
+```
+
 ### Example: Read Configuration
 
 ```hcl
@@ -93,6 +110,7 @@ output "version" {
 |----------|-------------|
 | `sabnzbd_server` | Manages news server configuration |
 | `sabnzbd_category` | Manages download categories |
+| `sabnzbd_folders` | Manages folder paths and disk space settings |
 
 ## Data Sources
 
